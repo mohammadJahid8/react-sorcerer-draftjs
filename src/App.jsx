@@ -8,13 +8,20 @@ import {
   getDefaultKeyBinding,
   convertFromRaw,
   CompositeDecorator,
+  Modifier,
 } from "draft-js";
 import "draft-js/dist/Draft.css";
 
-// Define a custom inline style for red color
+const blockStyleFn = (contentBlock) => {
+  const type = contentBlock.getType();
+  if (type === "code-block") {
+    return "code-block-style";
+  }
+  return "";
+};
+
 const RED_COLOR_STYLE = { color: "red" };
 
-// Decorator to apply the custom inline style to text matching the pattern
 const redColorDecorator = {
   strategy: (contentBlock, callback) => {
     contentBlock.findStyleRanges(
@@ -30,9 +37,8 @@ const redColorDecorator = {
 const compositeDecorator = new CompositeDecorator([redColorDecorator]);
 
 const App = () => {
-  const [currentText, setCurrentText] = useState();
+  // const [currentText, setCurrentText] = useState();
   const [editorState, setEditorState] = useState(() => {
-    // Load content from localStorage on component mount
     const savedContent = localStorage.getItem("editorContent");
     if (savedContent) {
       const contentState = convertFromRaw(JSON.parse(savedContent));
@@ -70,6 +76,17 @@ const App = () => {
     return getDefaultKeyBinding(e);
   };
 
+  // const onEditorChange = (newEditorState) => {
+  //   setEditorState(newEditorState);
+
+  //   // Your logic to process the content goes here
+  //   const contentState = newEditorState.getCurrentContent();
+  //   const lastBlock = contentState.getLastBlock();
+  //   const lastBlockText = lastBlock.getText();
+  //   // console.log("Current content:", lastBlockText);
+  //   setCurrentText(lastBlockText);
+  // };
+
   const onEditorChange = (newEditorState) => {
     setEditorState(newEditorState);
 
@@ -77,58 +94,43 @@ const App = () => {
     const contentState = newEditorState.getCurrentContent();
     const lastBlock = contentState.getLastBlock();
     const lastBlockText = lastBlock.getText();
-    console.log("Current content:", lastBlockText);
-    setCurrentText(lastBlockText);
-  };
 
-  const handleBeforeInput = (input, editorState) => {
-    // console.log({ text });
-    // if (text === "# ") {
-    //   console.log("inside # ", text);
-    //   setEditorState(RichUtils.toggleBlockType(editorState, "header-one"));
-    //   return "handled";
-    // } else if (text === "* ") {
-    //   console.log("inside * ", text);
-    //   setEditorState(RichUtils.toggleInlineStyle(editorState, "BOLD"));
-    //   return "handled";
-    // } else if (text === "** ") {
-    //   console.log("inside ** ", text);
-    //   setEditorState(RichUtils.toggleInlineStyle(editorState, "RED_COLOR"));
-    //   return "handled";
-    // } else if (text === "*** ") {
-    //   console.log("inside *** ", text);
-    //   setEditorState(RichUtils.toggleInlineStyle(editorState, "UNDERLINE"));
-    //   return "handled";
-    // }
-    // return "not-handled";
-
-    // const contentState = editorState.getCurrentContent();
-    // const selection = editorState.getSelection();
-    // const startKey = selection.getStartKey();
-    // const currentContentBlock = contentState.getBlockForKey(startKey);
-    // const text = currentContentBlock.getText();
-
-    console.log(currentText);
-
-    // Check if the input matches the desired patterns
-    if (currentText === "# " && input === " ") {
+    // Check for specific conditions and apply styles or block types
+    if (lastBlockText.endsWith("# ") && lastBlockText.trim() === "#") {
       console.log("inside hash");
-      setEditorState(RichUtils.toggleBlockType(editorState, "header-one"));
-      return "handled";
-    } else if (currentText === "* " && input === " ") {
+      setEditorState(RichUtils.toggleBlockType(newEditorState, "header-one"));
+    } else if (lastBlockText.endsWith("* ") && lastBlockText.trim() === "*") {
       console.log("inside * ");
-      setEditorState(RichUtils.toggleInlineStyle(editorState, "BOLD"));
-      return "handled";
-    } else if (currentText === "** " && input === " ") {
+      setEditorState(RichUtils.toggleInlineStyle(newEditorState, "BOLD"));
+    } else if (lastBlockText.endsWith("** ") && lastBlockText.trim() === "**") {
       console.log("inside **");
-      setEditorState(RichUtils.toggleInlineStyle(editorState, "RED_COLOR"));
-      return "handled";
-    } else if (currentText.endsWith("*** ") && input === " ") {
-      setEditorState(RichUtils.toggleInlineStyle(editorState, "UNDERLINE"));
-      return "handled";
+      setEditorState(RichUtils.toggleInlineStyle(newEditorState, "RED_COLOR"));
+    } else if (
+      lastBlockText.endsWith("*** ") &&
+      lastBlockText.trim() === "***"
+    ) {
+      setEditorState(RichUtils.toggleInlineStyle(newEditorState, "UNDERLINE"));
+    } else if (
+      lastBlockText.endsWith("``` ") &&
+      lastBlockText.trim() === "```"
+    ) {
+      // Handle code block logic
+      console.log("inside code block");
+      const currentContent = newEditorState.getCurrentContent();
+      const selection = newEditorState.getSelection();
+      const codeBlock = Modifier.splitBlock(currentContent, selection);
+      const newContentState = Modifier.setBlockType(
+        codeBlock,
+        codeBlock.getSelectionAfter(),
+        "code-block"
+      );
+      const newEditorStateWithCodeBlock = EditorState.push(
+        newEditorState,
+        newContentState,
+        "split-block"
+      );
+      setEditorState(newEditorStateWithCodeBlock);
     }
-
-    return "not-handled";
   };
 
   const handlePastedText = (text, html, editorState) => {
@@ -147,6 +149,24 @@ const App = () => {
     } else if (text === "*** ") {
       console.log("paste *** ", text);
       setEditorState(RichUtils.toggleInlineStyle(editorState, "UNDERLINE"));
+      return "handled";
+    } else if (text.trim() === "``` ") {
+      // Handle pasted code block
+      console.log("paste code block");
+      const currentContent = editorState?.getCurrentContent();
+      const selection = editorState.getSelection();
+      const codeBlock = Modifier.splitBlock(currentContent, selection);
+      const newContentState = Modifier.setBlockType(
+        codeBlock,
+        codeBlock.getSelectionAfter(),
+        "code-block"
+      );
+      const newEditorStateWithCodeBlock = EditorState.push(
+        editorState,
+        newContentState,
+        "split-block"
+      );
+      setEditorState(newEditorStateWithCodeBlock);
       return "handled";
     }
     return "not-handled";
@@ -177,13 +197,14 @@ const App = () => {
           editorState={editorState}
           handleKeyCommand={handleKeyCommand}
           keyBindingFn={mapKeyToEditorCommand}
-          handleBeforeInput={(text, editorState) =>
-            handleBeforeInput(text, editorState)
-          }
+          // handleBeforeInput={(text, editorState) =>
+          //   handleBeforeInput(text, editorState)
+          // }
           handlePastedText={(text, editorState) =>
             handlePastedText(text, editorState)
           }
           onChange={(newEditorState) => onEditorChange(newEditorState)}
+          blockStyleFn={blockStyleFn}
         />
       </div>
     </div>

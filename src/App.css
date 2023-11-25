@@ -4,8 +4,14 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Roboto Condensed", sans-serif;
-  background-color: white;
+  /* font-family: "Roboto Condensed", sans-serif; */
+  /* background-color: white; */
+}
+
+.code-block-style {
+  background-color: #f0f0f0; /* Set the desired gray color */
+  padding: 10px; /* Optional: Add padding for better readability */
+  font-family: monospace; /* Optional: Use a monospaced font for code blocks */
 }
 
 .DraftEditor-root {
