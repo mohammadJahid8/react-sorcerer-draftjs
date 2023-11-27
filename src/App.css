@@ -1,17 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap");
 
-* {
+body {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  /* font-family: "Roboto Condensed", sans-serif; */
+  font-family: "Roboto Condensed", sans-serif;
   /* background-color: white; */
 }
 
 .code-block-style {
-  background-color: #f0f0f0; /* Set the desired gray color */
-  padding: 10px; /* Optional: Add padding for better readability */
-  font-family: monospace; /* Optional: Use a monospaced font for code blocks */
+  background-color: #f0f0f0;
+  padding: 10px;
+  font-family: monospace !important;
 }
 
 .DraftEditor-root {

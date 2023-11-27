@@ -9,6 +9,7 @@ import {
   convertFromRaw,
   CompositeDecorator,
   Modifier,
+  convertToRaw,
 } from "draft-js";
 import "draft-js/dist/Draft.css";
 
@@ -37,7 +38,7 @@ const redColorDecorator = {
 const compositeDecorator = new CompositeDecorator([redColorDecorator]);
 
 const App = () => {
-  // const [currentText, setCurrentText] = useState();
+  const [loading, setLoading] = useState(false);
   const [editorState, setEditorState] = useState(() => {
     const savedContent = localStorage.getItem("editorContent");
     if (savedContent) {
@@ -46,13 +47,6 @@ const App = () => {
     }
     return EditorState.createEmpty(compositeDecorator);
   });
-
-  // useEffect(() => {
-  //   // Save content to localStorage whenever editorState changes
-  //   const contentState = editorState.getCurrentContent();
-  //   const contentStateJSON = JSON.stringify(convertToRaw(contentState));
-  //   localStorage.setItem("editorContent", contentStateJSON);
-  // }, [editorState]);
 
   const handleKeyCommand = (command, editorState) => {
     const newState = RichUtils.handleKeyCommand(editorState, command);
@@ -76,26 +70,13 @@ const App = () => {
     return getDefaultKeyBinding(e);
   };
 
-  // const onEditorChange = (newEditorState) => {
-  //   setEditorState(newEditorState);
-
-  //   // Your logic to process the content goes here
-  //   const contentState = newEditorState.getCurrentContent();
-  //   const lastBlock = contentState.getLastBlock();
-  //   const lastBlockText = lastBlock.getText();
-  //   // console.log("Current content:", lastBlockText);
-  //   setCurrentText(lastBlockText);
-  // };
-
   const onEditorChange = (newEditorState) => {
     setEditorState(newEditorState);
 
-    // Your logic to process the content goes here
     const contentState = newEditorState.getCurrentContent();
     const lastBlock = contentState.getLastBlock();
     const lastBlockText = lastBlock.getText();
 
-    // Check for specific conditions and apply styles or block types
     if (lastBlockText.endsWith("# ") && lastBlockText.trim() === "#") {
       console.log("inside hash");
       setEditorState(RichUtils.toggleBlockType(newEditorState, "header-one"));
@@ -131,6 +112,9 @@ const App = () => {
       );
       setEditorState(newEditorStateWithCodeBlock);
     }
+    const contentStateJSON = JSON.stringify(convertToRaw(contentState));
+
+    localStorage.setItem("editorContent", contentStateJSON);
   };
 
   const handlePastedText = (text, html, editorState) => {
@@ -172,6 +156,19 @@ const App = () => {
     return "not-handled";
   };
 
+  const handleSave = () => {
+    setLoading(true);
+
+    const contentState = editorState.getCurrentContent();
+    const contentStateJSON = JSON.stringify(convertToRaw(contentState));
+
+    // Save content to localStorage
+    localStorage.setItem("editorContent", contentStateJSON);
+    setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+  };
+
   return (
     <div
       style={{
@@ -190,16 +187,15 @@ const App = () => {
         }}
       >
         <h3>Demo editor by Mohammad Jahid</h3>
-        <button className="save-button">Save</button>
+        <button onClick={handleSave} className="save-button" disabled={loading}>
+          {loading ? "SAVED" : "SAVE"}
+        </button>
       </div>
       <div>
         <Editor
           editorState={editorState}
           handleKeyCommand={handleKeyCommand}
           keyBindingFn={mapKeyToEditorCommand}
-          // handleBeforeInput={(text, editorState) =>
-          //   handleBeforeInput(text, editorState)
-          // }
           handlePastedText={(text, editorState) =>
             handlePastedText(text, editorState)
           }
